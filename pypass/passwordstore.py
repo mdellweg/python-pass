@@ -100,7 +100,7 @@ class PasswordStore(object):
             )
         )
 
-        gpg = subprocess.Popen(
+        with subprocess.Popen(
             [
                 GPG_BIN,
                 '--quiet',
@@ -110,33 +110,33 @@ class PasswordStore(object):
             ],
             shell=False,
             stdout=subprocess.PIPE
-        )
-        gpg.wait()
+        ) as gpg:
+            gpg.wait()
 
-        if gpg.returncode == 0:
-            decrypted_password = gpg.stdout.read().decode()
+            if gpg.returncode == 0:
+                decrypted_password = gpg.stdout.read().decode()
 
-            if entry == EntryType.username:
-                usr = re.search(
-                    '(?:username|user|login): (.+)',
-                    decrypted_password
-                )
-                if usr:
-                    return usr.groups()[0]
-            elif entry == EntryType.password:
-                pw = re.search('(?:password|pass): (.+)', decrypted_password)
-                if pw:
-                    return pw.groups()[0]
-                else:  # If there is no match, password is the first line
-                    return decrypted_password.split('\n')[0]
-            elif entry == EntryType.hostname:
-                hostname = re.search(
-                    '(?:host|hostname): (.+)', decrypted_password
-                )
-                if hostname:
-                    return hostname.groups()[0]
-            else:
-                return decrypted_password
+                if entry == EntryType.username:
+                    usr = re.search(
+                        '(?:username|user|login): (.+)',
+                        decrypted_password
+                    )
+                    if usr:
+                        return usr.groups()[0]
+                elif entry == EntryType.password:
+                    pw = re.search('(?:password|pass): (.+)', decrypted_password)
+                    if pw:
+                        return pw.groups()[0]
+                    else:  # If there is no match, password is the first line
+                        return decrypted_password.split('\n')[0]
+                elif entry == EntryType.hostname:
+                    hostname = re.search(
+                        '(?:host|hostname): (.+)', decrypted_password
+                    )
+                    if hostname:
+                        return hostname.groups()[0]
+                else:
+                    return decrypted_password
 
     def insert_password(self, path, password):
         """Encrypts the password at the given path
@@ -152,7 +152,7 @@ class PasswordStore(object):
         if not os.path.isdir(os.path.dirname(passfile_path)):
             os.makedirs(os.path.dirname(passfile_path))
 
-        gpg = subprocess.Popen(
+        with subprocess.Popen(
             [
                 GPG_BIN,
                 '-e',
@@ -165,11 +165,11 @@ class PasswordStore(object):
             ],
             shell=False,
             stdin=subprocess.PIPE
-        )
+        ) as gpg:
 
-        gpg.stdin.write(password.encode())
-        gpg.stdin.close()
-        gpg.wait()
+            gpg.stdin.write(password.encode())
+            gpg.stdin.close()
+            gpg.wait()
 
     @staticmethod
     def generate_password(digits=True, symbols=True, length=15):
